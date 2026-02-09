@@ -8,22 +8,22 @@ This repository contains a professional containerized Bakery Web Application. Be
 The Use Case Diagram defines the interactions between users and the system's core functionalities within the AWS Cloud environment.
 
 ```mermaid
-usecaseDiagram
-    actor "Customer" as C
-    actor "Admin" as A
-    
-    package "AWS Cloud - Bakery System" {
-        usecase "Browse Products" as UC1
-        usecase "View Team & Testimonials" as UC2
-        usecase "Submit Contact Inquiry" as UC3
-        usecase "Manage Database (RDS)" as UC4
-    }
-    
-    C --> UC1
-    C --> UC2
-    C --> UC3
-    A --> UC4
-    UC1 ..> UC4 : <<include>>
+graph LR
+    subgraph "Bakery Web System (AWS Cloud)"
+        UC1([Browse Products])
+        UC2([View Team & Testimonials])
+        UC3([Submit Contact Inquiry])
+        UC4([Manage Database - RDS])
+    end
+
+    Customer((Customer))
+    Admin((Admin))
+
+    Customer --> UC1
+    Customer --> UC2
+    Customer --> UC3
+    Admin --> UC4
+    UC1 -.-> UC4
 ```
 
 ---
@@ -51,11 +51,7 @@ graph TD
     Internet((User Browser)) --> IGW
     IGW --> A
     A -- REST API Calls --> B
-    B -- JDBC / SSL --> C
-    
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style B fill:#bbf,stroke:#333,stroke-width:2px
-    style C fill:#dfd,stroke:#333,stroke-width:2px
+    B -- JDBC / SQL --> C
 ```
 
 ---
