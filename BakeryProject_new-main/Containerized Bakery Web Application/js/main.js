@@ -107,7 +107,7 @@
         submitButton.prop('disabled', true).text('Sending...');
 
          $.ajax({
-             url: 'http://' + window.location.hostname + ':8080/api/contact',
+             url: 'http://127.0.0.1:8080/api/contact',
              type: 'POST',
              contentType: 'application/json',
              data: JSON.stringify(formData),
