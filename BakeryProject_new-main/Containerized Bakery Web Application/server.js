@@ -81,7 +81,7 @@ const server = http.createServer((req, res) => {
             }
 
             // --- PRODUCTS ---
-            else if (url === '/api/products' && method === 'GET') {
+            else if ((url === '/api/products' || url === '/api/admin/products') && method === 'GET') {
                 const [rows] = await pool.query('SELECT * FROM products');
                 res.end(JSON.stringify(rows));
             }
