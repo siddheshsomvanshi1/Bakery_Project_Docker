@@ -85,9 +85,22 @@ erDiagram
 
 ---
 
-## � Getting Started (Local Setup)
+## 🛠️ Essential Manual Configurations (IMPORTANT)
 
-Follow these steps to run the entire project on your laptop in under 5 minutes.
+Before running the project, you must check these settings based on your environment.
+
+### 📍 1. Local Database (Docker)
+- **Port Mapping**: Docker uses port **3307** to map the internal MySQL port (3306).
+- **Update `docker-compose.yml`**: Ensure `DB_HOST` in the `backend` service is set to `db` for local execution.
+
+### 🌐 2. AWS RDS Configuration
+- **Endpoint**: Update `DB_HOST` in `docker-compose.yml` with your RDS Endpoint.
+- **Credentials**: Update `DB_USER` and `DB_PASS` in `docker-compose.yml` with your RDS master username and password.
+
+---
+
+## 🚀 Getting Started (Local Setup - From Scratch)
+...
 
 ### 1. Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
@@ -102,11 +115,19 @@ cd "Bakery_Project_Docker/BakeryProject_new-main/Containerized Bakery Web Applic
 ### 3. Initialize the Database
 1. Open MySQL Workbench and connect to your local instance (Port 3306).
 2. Execute the script found in: `db/bakery_schema.sql`.
-   - *Note: This project uses port **3307** locally for Docker to avoid conflicts with your system's MySQL.*
 
-### 4. Launch the Application
-Run the following command in your terminal:
+### 4. Configure `docker-compose.yml`
+Open `docker-compose.yml` and ensure the `backend` service is correctly configured:
+- **Local Host**: `DB_HOST: db` (if using Docker database service)
+- **Local Host**: `DB_HOST: 127.0.0.1` (if using local MySQL on port 3306/3307)
+- **Cloud (RDS)**: `DB_HOST: <your-rds-endpoint>`
+
+### 5. Launch the Application
 ```bash
+# Clean up any existing containers
+docker-compose down
+
+# Build and start new containers
 docker-compose up --build -d
 ```
 
