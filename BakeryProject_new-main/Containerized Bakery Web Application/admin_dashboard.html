@@ -94,13 +94,18 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
+            // Dynamically determine the API base URL based on the current hostname
+            const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                ? 'http://' + window.location.hostname + ':8080' 
+                : 'http://' + window.location.hostname + ':8080';
+
             if (localStorage.getItem('isAdmin') !== 'true') window.location.href = 'admin_login.html';
             $('#logoutBtn').click(() => { localStorage.clear(); window.location.href = 'admin_login.html'; });
 
             loadProducts(); loadOrders();
 
             function loadProducts() {
-                fetch('http://127.0.0.1:8080/api/admin/products').then(r => r.json()).then(products => {
+                fetch(`${apiBase}/api/admin/products`).then(r => r.json()).then(products => {
                     let html = '';
                     products.forEach(p => {
                         html += `<div class="col-md-4"><div class="product-card">
@@ -111,11 +116,14 @@
                         </div></div>`;
                     });
                     $('#productList').html(html);
+                }).catch(err => {
+                    console.error("Error loading products:", err);
+                    $('#productList').html('<p class="text-danger">Error loading products from server. Please ensure port 8080 is open.</p>');
                 });
             }
 
             function loadOrders() {
-                fetch('http://127.0.0.1:8080/api/admin/orders').then(r => r.json()).then(orders => {
+                fetch(`${apiBase}/api/admin/orders`).then(r => r.json()).then(orders => {
                     let html = '';
                     orders.forEach(o => {
                         let items = [];
@@ -139,7 +147,7 @@
                     $('#orderList').html(html || 'No orders yet.');
                 }).catch(err => {
                     console.error("Error loading orders:", err);
-                    $('#orderList').html('<p class="text-danger">Error loading orders from server.</p>');
+                    $('#orderList').html('<p class="text-danger">Error loading orders from server. Please ensure port 8080 is open.</p>');
                 });
             }
 
@@ -155,7 +163,7 @@
                 const data = { name: $('#pName').val(), price: $('#pPrice').val(), quantity: $('#pQty').val(), image: $('#pImageBase64').val() };
                 const method = id ? 'PUT' : 'POST';
                 if (id) data.id = id;
-                fetch('http://127.0.0.1:8080/api/admin/products', {
+                fetch(`${apiBase}/api/admin/products`, {
                     method: method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
                 }).then(() => { $('#productModal').modal('hide'); loadProducts(); });
             });
@@ -169,7 +177,7 @@
 
             $(document).on('click', '.del-p', function() {
                 if(confirm('Delete product?')) {
-                    fetch('http://127.0.0.1:8080/api/admin/products', {
+                    fetch(`${apiBase}/api/admin/products`, {
                         method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: $(this).data('id')})
                     }).then(() => loadProducts());
                 }
@@ -182,7 +190,7 @@
 
             $('#statusForm').submit(function(e) {
                 e.preventDefault();
-                fetch('http://127.0.0.1:8080/api/admin/orders', {
+                fetch(`${apiBase}/api/admin/orders`, {
                     method: 'PUT', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({id: $('#oId').val(), status: $('#oStatus').val(), message: $('#oMsg').val()})
                 }).then(() => { $('#statusModal').modal('hide'); loadOrders(); });
