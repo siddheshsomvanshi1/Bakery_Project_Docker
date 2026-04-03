@@ -13,7 +13,9 @@
     
     
     // Initiate the wowjs
-    new WOW().init();
+    if (typeof WOW !== 'undefined') {
+        new WOW().init();
+    }
 
 
     // Fixed Navbar

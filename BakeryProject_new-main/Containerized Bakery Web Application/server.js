@@ -97,11 +97,15 @@ const server = http.createServer((req, res) => {
         res.setHeader('Content-Type', 'application/json');
 
         try {
-            if (!pool) throw new Error('Database not connected');
+            if (!pool) {
+                res.writeHead(503);
+                return res.end(JSON.stringify({error: 'Database not connected. Please check RDS connectivity and security groups.'}));
+            }
 
             // --- AUTH ---
             if (url === '/api/register' && method === 'POST') {
                 const { username, email, password } = JSON.parse(body);
+                if (!username || !email || !password) return res.end(JSON.stringify({status:'error', message:'All fields required'}));
                 const [exists] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
                 if (exists.length > 0) return res.end(JSON.stringify({status:'error', message:'Email already registered'}));
                 const hash = await bcrypt.hash(password, 10);
