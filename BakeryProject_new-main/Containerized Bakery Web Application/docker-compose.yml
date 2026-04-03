@@ -13,8 +13,7 @@ services:
       DB_NAME: bakery_db
       ADMIN_USER: admin
       ADMIN_PASS: admin123
-    depends_on:
-      - db
+    restart: always
 
   frontend:
     build:
