@@ -9,7 +9,7 @@ services:
       # --- FOR CLOUD SETUP: Using your RDS Endpoint ---
       DB_HOST: database-2.ctoysy0yovt5.ap-southeast-1.rds.amazonaws.com
       DB_USER: admin
-      DB_PASS: admin123
+      DB_PASS: ganeshjadhav
       DB_NAME: bakery_db
       DB_SSL: 'true'
       ADMIN_USER: admin
