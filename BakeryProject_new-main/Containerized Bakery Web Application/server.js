@@ -12,6 +12,7 @@ let pool = null;
         pool = mysql.createPool({host, user, password, database, waitForConnections: true, connectionLimit: 10, queueLimit: 0});
         
         // Ensure tables exist
+        console.log('Checking/Creating tables...');
         await pool.query(`CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
             username VARCHAR(255) NOT NULL,
@@ -20,6 +21,14 @@ let pool = null;
             role ENUM('user', 'admin') DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+        
+        // Ensure username column exists (in case table existed without it)
+        try {
+            await pool.query('ALTER TABLE users ADD COLUMN username VARCHAR(255) NOT NULL AFTER id');
+            console.log('Added username column to users table');
+        } catch (e) {
+            // Ignore error if column already exists
+        }
 
         await pool.query(`CREATE TABLE IF NOT EXISTS products (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,6 +51,15 @@ let pool = null;
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
         )`);
+
+        // Ensure orders table columns exist
+        try {
+            await pool.query('ALTER TABLE orders ADD COLUMN user_id INT NULL AFTER id');
+            await pool.query('ALTER TABLE orders ADD CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL');
+            console.log('Added user_id and foreign key to orders table');
+        } catch (e) {
+            // Ignore error if column or constraint already exists
+        }
 
         await pool.query(`CREATE TABLE IF NOT EXISTS contact_messages (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -104,12 +122,20 @@ const server = http.createServer((req, res) => {
 
             // --- AUTH ---
             if (url === '/api/register' && method === 'POST') {
+                console.log('Registering user:', body);
                 const { username, email, password } = JSON.parse(body);
-                if (!username || !email || !password) return res.end(JSON.stringify({status:'error', message:'All fields required'}));
+                if (!username || !email || !password) {
+                    console.log('Registration failed: missing fields');
+                    return res.end(JSON.stringify({status:'error', message:'All fields required'}));
+                }
                 const [exists] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
-                if (exists.length > 0) return res.end(JSON.stringify({status:'error', message:'Email already registered'}));
+                if (exists.length > 0) {
+                    console.log('Registration failed: email exists');
+                    return res.end(JSON.stringify({status:'error', message:'Email already registered'}));
+                }
                 const hash = await bcrypt.hash(password, 10);
                 await pool.query('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)', [username, email, hash]);
+                console.log('Registration successful for:', email);
                 res.end(JSON.stringify({status:'ok', message:'Registered successfully'}));
             }
             else if (url === '/api/login' && method === 'POST') {
@@ -121,19 +147,35 @@ const server = http.createServer((req, res) => {
                 res.end(JSON.stringify({status:'ok', user: {id: rows[0].id, username: rows[0].username, role: rows[0].role}}));
             }
             else if (url === '/api/employee/login' && method === 'POST') {
+                console.log('Employee login attempt:', body);
                 const { email, password } = JSON.parse(body);
                 const [rows] = await pool.query('SELECT id, username, password_hash, role FROM users WHERE email = ?', [email]);
-                if (rows.length === 0) return res.end(JSON.stringify({status:'error', message:'Employee not found'}));
+                if (rows.length === 0) {
+                    console.log('Login failed: user not found');
+                    return res.end(JSON.stringify({status:'error', message:'Employee not found'}));
+                }
                 const ok = await bcrypt.compare(password, rows[0].password_hash);
-                if (!ok) return res.end(JSON.stringify({status:'error', message:'Invalid password'}));
+                if (!ok) {
+                    console.log('Login failed: invalid password');
+                    return res.end(JSON.stringify({status:'error', message:'Invalid password'}));
+                }
+                console.log('Login successful for:', email);
                 res.end(JSON.stringify({status:'ok', user: {id: rows[0].id, username: rows[0].username, role: rows[0].role}}));
             }
             else if (url === '/api/admin/login' && method === 'POST') {
+                console.log('Admin login attempt:', body);
                 const { username, password } = JSON.parse(body);
                 const [rows] = await pool.query('SELECT id, username, password_hash, role FROM users WHERE username = ? AND role = "admin"', [username]);
-                if (rows.length === 0) return res.end(JSON.stringify({status:'error', message:'Admin not found'}));
+                if (rows.length === 0) {
+                    console.log('Admin login failed: user not found');
+                    return res.end(JSON.stringify({status:'error', message:'Admin not found'}));
+                }
                 const ok = await bcrypt.compare(password, rows[0].password_hash);
-                if (!ok) return res.end(JSON.stringify({status:'error', message:'Invalid password'}));
+                if (!ok) {
+                    console.log('Admin login failed: invalid password');
+                    return res.end(JSON.stringify({status:'error', message:'Invalid password'}));
+                }
+                console.log('Admin login successful for:', username);
                 res.end(JSON.stringify({status:'ok', message: 'Login successful'}));
             }
 
@@ -195,9 +237,9 @@ const server = http.createServer((req, res) => {
                 res.end(JSON.stringify({error: 'Not Found'}));
             }
         } catch (e) {
-            console.error('Request Error:', e.message);
+            console.error('Request Error at', url, ':', e);
             res.writeHead(500);
-            res.end(JSON.stringify({error: e.message}));
+            res.end(JSON.stringify({status: 'error', error: 'Internal Server Error', details: e.message, stack: e.stack}));
         }
     });
 });
