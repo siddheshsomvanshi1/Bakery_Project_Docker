@@ -9,7 +9,8 @@ let pool = null;
         const user = process.env.DB_USER || 'root';
         const password = process.env.DB_PASS || 'root';
         const database = process.env.DB_NAME || 'bakery_db';
-        pool = mysql.createPool({host, user, password, database, waitForConnections: true, connectionLimit: 10, queueLimit: 0});
+        const ssl = process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false;
+        pool = mysql.createPool({host, user, password, database, ssl, waitForConnections: true, connectionLimit: 10, queueLimit: 0});
         
         // Ensure tables exist
         console.log('Checking/Creating tables...');

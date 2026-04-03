@@ -11,7 +11,13 @@ public class DB {
         String url = System.getenv("DB_URL");
         String user = System.getenv("DB_USER"); 
         String pass = System.getenv("DB_PASS");
+        String ssl = System.getenv("DB_SSL");
         if (url == null || user == null || pass == null) throw new SQLException("missing env");
+        
+        if ("true".equalsIgnoreCase(ssl)) {
+            if (!url.contains("?")) url += "?"; else url += "&";
+            url += "useSSL=true&trustServerCertificate=true";
+        }
         return DriverManager.getConnection(url, user, pass);
     }
 

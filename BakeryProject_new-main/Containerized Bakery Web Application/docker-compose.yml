@@ -11,6 +11,7 @@ services:
       DB_USER: admin
       DB_PASS: admin123
       DB_NAME: bakery_db
+      DB_SSL: 'true'
       ADMIN_USER: admin
       ADMIN_PASS: admin123
     restart: always
