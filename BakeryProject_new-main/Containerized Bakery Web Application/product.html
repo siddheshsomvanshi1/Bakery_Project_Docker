@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Pune Bakery - Our Products</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link href="img/favicon.ico" rel="icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        .cart-badge { position: absolute; top: -5px; right: -10px; padding: 2px 6px; border-radius: 50%; background: #e51a4b; color: white; font-size: 10px; }
+        .product-item img { height: 250px; object-fit: cover; }
+        .payment-qr { max-width: 200px; margin: 20px auto; display: block; border: 10px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top py-lg-0 px-lg-5 wow fadeIn" data-wow-delay="0.1s">
+        <a href="index.html" class="navbar-brand ms-4 ms-lg-0">
+            <h1 class="text-primary m-0">Pune Bakery</h1>
+        </a>
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+            <div class="navbar-nav mx-auto p-4 p-lg-0">
+                <a href="index.html" class="nav-item nav-link">Home</a>
+                <a href="product.html" class="nav-item nav-link active">Products</a>
+                <a href="contact.html" class="nav-item nav-link">Contact</a>
+                <a href="employee_login.html" id="authLink" class="nav-item nav-link">Login / Register</a>
+                <span id="userNameDisplay" class="nav-item nav-link text-primary" style="display:none;"></span>
+                <a href="#" id="logoutBtn" class="nav-item nav-link" style="display:none;">Logout</a>
+            </div>
+            <div class="d-none d-lg-flex align-items-center">
+                <button type="button" class="btn btn-primary position-relative me-4" data-bs-toggle="modal" data-bs-target="#cartModal">
+                    <i class="fa fa-shopping-cart"></i>
+                    <span id="cartCount" class="cart-badge">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid page-header py-6">
+        <div class="container text-center pt-5 pb-3">
+            <h1 class="display-4 text-white animated slideInDown mb-3">Our Menu</h1>
+        </div>
+    </div>
+
+    <div class="container-xxl bg-light my-6 py-6 pt-0">
+        <div class="container">
+            <div id="productsDisplay" class="row g-4 mt-5"></div>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div class="modal fade" id="cartModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Your Cart</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="cartItems" class="text-dark"></div>
+                    <div id="cartTotal" class="text-end mt-3 fw-bold text-dark"></div>
+                    <hr>
+                    <div id="checkoutSection" style="display:none;">
+                        <form id="orderForm">
+                            <div class="row g-3">
+                                <div class="col-md-6"><input type="text" id="custName" class="form-control" placeholder="Name" required></div>
+                                <div class="col-md-6"><input type="email" id="custEmail" class="form-control" placeholder="Email" required></div>
+                                <div class="col-12"><textarea id="custAddress" class="form-control" placeholder="Address" required></textarea></div>
+                                <div class="col-12"><button type="submit" class="btn btn-primary w-100">Proceed to Payment</button></div>
+                            </div>
+                        </form>
+                    </div>
+                    <div id="paymentSection" style="display:none;" class="text-center">
+                        <h5 class="text-dark">Processing Payment...</h5>
+                        <div class="spinner-border text-primary my-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted">Connecting to Secure Gateway - <span id="timer">10</span>s...</p>
+                    </div>
+                    <div id="loginPrompt" class="text-center p-4" style="display:none;">
+                        <p class="text-dark">Please <a href="employee_login.html">Login</a> to place an order.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Status -->
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 bg-white p-5 rounded shadow">
+                <h4 class="text-center text-dark">Track Your Orders</h4>
+                <div id="orderStatusList" class="mt-4 text-dark"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let cart = [];
+        const user = JSON.parse(localStorage.getItem('user'));
+
+        $(document).ready(function() {
+            // Using relative path for API (proxied via Nginx)
+            const apiBase = '';
+
+            if (user) {
+                $('#authLink').hide();
+                $('#userNameDisplay').text('Welcome, ' + user.username).show();
+                $('#logoutBtn').show();
+                $('#checkoutSection').show();
+                loadUserOrders();
+            } else {
+                $('#loginPrompt').show();
+            }
+
+            $('#logoutBtn').click(function() {
+                localStorage.clear();
+                window.location.reload();
+            });
+
+            loadProducts();
+
+            function loadProducts() {
+                fetch(`${apiBase}/api/products`)
+                    .then(res => res.json())
+                    .then(products => {
+                        let html = '';
+                        products.forEach(p => {
+                            html += `
+                                <div class="col-lg-4 col-md-6">
+                                    <div class="product-item bg-white rounded shadow-sm h-100">
+                                        <div class="text-center p-4">
+                                            <div class="text-primary fw-bold mb-2">₹${p.price}</div>
+                                            <h3 class="mb-3">${p.name}</h3>
+                                            <p class="small text-muted">Stock: ${p.quantity}</p>
+                                        </div>
+                                        <img class="img-fluid w-100" src="${p.image}">
+                                        <div class="p-4 text-center">
+                                            <button class="btn btn-primary add-to-cart" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">Add to Cart</button>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        });
+                        $('#productsDisplay').html(html);
+                    })
+                    .catch(err => {
+                        console.error('Error loading products:', err);
+                        $('#productsDisplay').html('<p class="text-danger">Error loading products. Please try again later.</p>');
+                    });
+            }
+
+            $(document).on('click', '.add-to-cart', function() {
+                const id = $(this).data('id'), name = $(this).data('name'), price = $(this).data('price');
+                const existing = cart.find(i => i.id === id);
+                if (existing) existing.quantity++; else cart.push({id, name, price, quantity: 1});
+                updateCart();
+            });
+
+            function updateCart() {
+                $('#cartCount').text(cart.length);
+                let html = '', total = 0;
+                cart.forEach(item => {
+                    const sub = item.price * item.quantity;
+                    total += sub;
+                    html += `<div class="d-flex justify-content-between text-dark"><span>${item.name} x ${item.quantity}</span><span>₹${sub}</span></div>`;
+                });
+                $('#cartItems').html(html || 'Cart is empty');
+                $('#cartTotal').text('Total: ₹' + total);
+            }
+
+            $('#orderForm').submit(function(e) {
+                e.preventDefault();
+                $('#checkoutSection').hide();
+                $('#paymentSection').show();
+                let timeLeft = 10;
+                const timer = setInterval(() => {
+                    timeLeft--;
+                    $('#timer').text(timeLeft);
+                    if (timeLeft <= 0) {
+                        clearInterval(timer);
+                        completeOrder();
+                    }
+                }, 1000);
+            });
+
+            function completeOrder() {
+                const orderData = {
+                    user_id: user.id,
+                    customer_name: $('#custName').val(),
+                    customer_email: $('#custEmail').val(),
+                    customer_address: $('#custAddress').val(),
+                    items: cart,
+                    total_cost: cart.reduce((s, i) => s + (i.price * i.quantity), 0)
+                };
+                fetch(`${apiBase}/api/orders`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(orderData)
+                }).then(() => {
+                    alert('Payment Successful! Order Placed.');
+                    cart = [];
+                    updateCart();
+                    location.reload();
+                })
+                .catch(err => {
+                    console.error('Order error:', err);
+                    alert('Error placing order. Please check connection.');
+                });
+            }
+
+            function loadUserOrders() {
+                fetch(`${apiBase}/api/user/orders/${user.id}`)
+                    .then(res => res.json())
+                    .then(orders => {
+                        let html = '';
+                        orders.forEach(o => {
+                            html += `<div class="border-bottom p-3">
+                                <strong>Order #${o.id}</strong> - ₹${o.total_cost} 
+                                <span class="badge bg-info ms-2">${o.status}</span>
+                                <div class="small text-muted mt-1">Update: ${o.admin_message || 'Processing...'}</div>
+                            </div>`;
+                        });
+                        $('#orderStatusList').html(html || 'No orders yet.');
+                    })
+                    .catch(err => {
+                        console.error('Error loading orders:', err);
+                        $('#orderStatusList').html('<p class="text-danger">Error loading your orders.</p>');
+                    });
+            }
+        });
+    </script>
+</body>
+</html>
